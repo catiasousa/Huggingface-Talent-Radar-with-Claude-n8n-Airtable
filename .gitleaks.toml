@@ -1,0 +1,44 @@
+# Gitleaks configuration for Hugging Face Talent Radar
+# Extends the default ruleset and adds custom rules for the services this repo touches.
+
+title = "Hugging Face Talent Radar secret scan"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[a-zA-Z0-9_\-]{20,}'''
+tags = ["key", "anthropic"]
+
+[[rules]]
+id = "huggingface-token"
+description = "Hugging Face access token"
+regex = '''hf_[a-zA-Z0-9]{30,}'''
+tags = ["token", "huggingface"]
+
+[[rules]]
+id = "github-pat"
+description = "GitHub personal access token"
+regex = '''(ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9_]{20,}'''
+tags = ["token", "github"]
+
+[[rules]]
+id = "airtable-pat"
+description = "Airtable personal access token"
+regex = '''pat[a-zA-Z0-9]{14,}\.[a-zA-Z0-9]{40,}'''
+tags = ["token", "airtable"]
+
+[allowlist]
+description = "Allowlisted placeholders and paths"
+regexes = [
+  '''YOUR_AIRTABLE_BASE_ID''',
+  '''YOUR_AIRTABLE_TABLE_ID''',
+  '''EXAMPLE_ORG''',
+]
+paths = [
+  '''README\.md''',
+  '''PROMPT\.md''',
+  '''\.gitleaks\.toml''',
+]
