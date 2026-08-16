@@ -27,10 +27,6 @@ Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 4. GitHub (github.com), author profile cross-reference  
 5. Airtable (airtable.com), your candidate database  
 
-## Workflow Diagram
-
-![Hugging Face Talent Radar Workflow](arXiv%20n8n%20Talent%20Radar.png)
-
 ## Airtable fields required by this workflow
 
 - full_name
