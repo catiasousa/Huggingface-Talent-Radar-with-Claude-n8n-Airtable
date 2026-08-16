@@ -1,0 +1,332 @@
+{
+  "name": "Hugging Face Talent Radar",
+  "nodes": [
+    {
+      "id": "ddcf3675-e9ef-4c0d-84ca-64e0c04a2382",
+      "name": "Every Monday 7am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 320],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [1],
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3d1b684a-b9ef-43d7-a681-2dd5b502f952",
+      "name": "Search 1 - By Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 0],
+      "parameters": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/models?sort=downloads&direction=-1&limit=50&pipeline_tag=text-generation",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        }
+      }
+    },
+    {
+      "id": "214328cb-7b3b-4187-aa94-be416edc6126",
+      "name": "Combine All Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [448, 288],
+      "parameters": { "mode": "append", "numberInputs": 4 }
+    },
+    {
+      "id": "f43b0a05-3848-4e8f-9eb8-95cac97f6b73",
+      "name": "Search 2 - Trending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 192],
+      "parameters": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/models?sort=likes7d&direction=-1&limit=50&pipeline_tag=text-generation",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        }
+      }
+    },
+    {
+      "id": "fb4efbf3-cbb6-4cb2-9a53-3feaadc8448d",
+      "name": "Search 3 - By Org",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 384],
+      "parameters": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/models?author=EXAMPLE_ORG&sort=downloads&direction=-1&limit=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        }
+      }
+    },
+    {
+      "id": "edd968a1-c0d5-427a-9c49-0a68a637b901",
+      "name": "Search 4 - By Library",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 576],
+      "parameters": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/models?sort=downloads&direction=-1&limit=50&library=transformers&pipeline_tag=text-generation",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        }
+      }
+    },
+    {
+      "id": "04a53a29-3654-4ee4-871e-54ddc60156ba",
+      "name": "Extract Unique Authors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [672, 320],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Get all models from all 4 searches\nconst allModels = $input.all().map(i => i.json);\n\n// Reset the per-run candidate budget counter (caps Claude calls this run).\nconst sd = $getWorkflowStaticData('global');\nsd.hfCandidateCount = 0;\n\n// Extract the author from each model and deduplicate\nconst seen = new Set();\nconst uniqueAuthors = [];\n\nfor (const model of allModels) {\n  const author = model.author || model.id?.split('/')[0];\n  if (!author) continue;\n  // Skip org accounts — we want individual engineers\n  // (orgs typically have IDs without hyphens in the name)\n  if (seen.has(author)) continue;\n  seen.add(author);\n  uniqueAuthors.push({\n    hf_username: author,\n    model_id: model.id,\n    model_downloads: model.downloads || 0,\n    model_likes: model.likes || 0,\n    model_task: model.pipeline_tag || '',\n    model_last_updated: model.lastModified || ''\n  });\n}\n\n// Sort by downloads — highest first\nuniqueAuthors.sort((a, b) => b.model_downloads - a.model_downloads);\n\n// Return top 80 candidate authors. Orgs get skipped later (profile 404),\n// and Claude scoring is capped separately by the \"Within Test Budget?\" gate.\nreturn uniqueAuthors.slice(0, 80).map(a => ({ json: a }));"
+      }
+    },
+    {
+      "id": "228f7387-c5ea-459c-bd41-67c3083a066d",
+      "name": "Process One By One",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [896, 320],
+      "parameters": { "batchSize": 1 }
+    },
+    {
+      "id": "eced63e5-1ce1-4deb-95a2-9b4d8fa951cf",
+      "name": "Get HF Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1120, 80],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://huggingface.co/api/users/{{ $json.hf_username }}/overview",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "huggingFaceApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "41af5e2c-4cc0-40d3-a8ac-4e48d77f1531",
+      "name": "Find on GitHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1344, 80],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/search/users?q={{ $json.fullname || $('Process One By One').first().json.hf_username }}&per_page=3",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/vnd.github+json" }]
+        }
+      }
+    },
+    {
+      "id": "a7f75933-c4a8-4619-8a40-61c8aaad7380",
+      "name": "Format for Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1568, 80],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const hfProfile = $('Get HF Profile').first().json;\nconst modelData = $('Process One By One').first().json;\nconst githubResults = $input.first().json.items || [];\nconst github = githubResults[0] || {};\n\n// Increment per-run candidate counter — this only runs for individuals\n// (orgs 404 at the profile step and never reach here). Used to cap Claude usage.\nconst sd = $getWorkflowStaticData('global');\nsd.hfCandidateCount = (sd.hfCandidateCount || 0) + 1;\n\n// Format organisations as readable text\nconst orgs = (hfProfile.orgs || []).map(o => o.name || o.id).join(', ') || 'none listed';\n\nreturn [{\n  json: {\n    hf_username: modelData.hf_username,\n    full_name: hfProfile.fullname || modelData.hf_username,\n    hf_url: `https://huggingface.co/${modelData.hf_username}`,\n    bio: hfProfile.bio || 'no bio',\n    location: hfProfile.location || 'unknown',\n    website: hfProfile.website || '',\n    num_models: hfProfile.numModels || 0,\n    num_followers: hfProfile.numFollowers || 0,\n    organisations: orgs,\n    // The model that triggered this candidate\n    top_model_id: modelData.model_id,\n    top_model_downloads: modelData.model_downloads,\n    top_model_task: modelData.model_task,\n    top_model_last_updated: modelData.model_last_updated,\n    // GitHub cross-reference\n    github_url: github.html_url || '',\n    github_followers: github.followers || 0,\n    // Test budget tracking\n    candidate_number: sd.hfCandidateCount\n  }\n}];"
+      }
+    },
+    {
+      "id": "2163d4a8-de88-461e-aa46-d8994e3d429c",
+      "name": "Within Test Budget?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1792, 80],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "budget-lte-2",
+              "leftValue": "={{ $json.candidate_number }}",
+              "rightValue": 2,
+              "operator": { "type": "number", "operation": "lte" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f51ee07c-a2b9-4ed4-be3c-ff6736d516b0",
+      "name": "Score with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [2016, 80],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-5-20250929\",\n  \"max_tokens\": 700,\n  \"system\": \"You are a senior technical recruiter specialising in AI and ML talent. You score Hugging Face profiles for engineering role fit. Be honest and precise. Download counts are strong signals of real-world impact. Return only valid JSON with no extra text.\",\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Score this Hugging Face profile for the role below.\\n\\nROLE I AM HIRING FOR:\\n[EDIT THIS — e.g. Senior ML Engineer. Must have: Python, PyTorch, LLM training or fine-tuning experience, 4+ years]\\n\\nHUGGING FACE PROFILE:\\nUsername: {{ $json.hf_username }}\\nFull name: {{ $json.full_name }}\\nBio: {{ $json.bio }}\\nLocation: {{ $json.location }}\\nNumber of models published: {{ $json.num_models }}\\nHF followers: {{ $json.num_followers }}\\nOrganisations: {{ $json.organisations }}\\n\\nMost downloaded model:\\nModel: {{ $json.top_model_id }}\\nTask: {{ $json.top_model_task }}\\nMonthly downloads: {{ $json.top_model_downloads }}\\nLast updated: {{ $json.top_model_last_updated }}\\n\\nGitHub profile (if found):\\nURL: {{ $json.github_url }}\\nGitHub followers: {{ $json.github_followers }}\\n\\nReturn this exact JSON:\\n{\\n  \\\"fit_score\\\": 0-100,\\n  \\\"priority\\\": \\\"reach_out_now or add_to_pipeline or monitor or skip\\\",\\n  \\\"key_strengths\\\": [\\\"strength 1\\\", \\\"strength 2\\\", \\\"strength 3\\\"],\\n  \\\"key_gaps\\\": [\\\"gap 1\\\", \\\"gap 2\\\"],\\n  \\\"outreach_hook\\\": \\\"one sentence referencing their specific model name and download count\\\",\\n  \\\"estimated_seniority\\\": \\\"junior or mid or senior or staff or principal\\\",\\n  \\\"likely_employed\\\": \\\"yes or no or unknown\\\",\\n  \\\"impact_signal\\\": \\\"one sentence on why their download count is or is not meaningful for this role\\\"\\n}\"\n  }]\n}"
+      }
+    },
+    {
+      "id": "a31d9ed4-d068-4458-93a7-d7c94da3dfe7",
+      "name": "Parse Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2240, 80],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const raw = $input.first().json.content[0].text;\nconst cleaned = raw.replace(/```json|```/g, '').trim();\nconst score = JSON.parse(cleaned);\nconst profile = $('Format for Claude').first().json;\n\nreturn [{\n  json: {\n    // Identity\n    full_name: profile.full_name,\n    hf_url: profile.hf_url,\n    github_url: profile.github_url,\n    location_city: profile.location,\n\n    // Source tracking\n    source: 'Hugging Face',\n    source_role: 'Senior ML Engineer', // EDIT THIS\n    date_sourced: new Date().toISOString().split('T')[0],\n\n    // Model data\n    top_model_id: profile.top_model_id,\n    top_model_downloads: profile.top_model_downloads,\n    top_model_task: profile.top_model_task,\n    num_models_published: profile.num_models,\n    hf_followers: profile.num_followers,\n    hf_organisations: profile.organisations,\n\n    // Claude scores\n    fit_score: score.fit_score,\n    priority_action: score.priority,\n    key_strengths: score.key_strengths.join(' | '),\n    key_gaps: score.key_gaps.join(' | '),\n    outreach_hook: score.outreach_hook,\n    estimated_seniority: score.estimated_seniority,\n    impact_signal: score.impact_signal\n  }\n}];"
+      }
+    },
+    {
+      "id": "ad19803b-0901-48ab-9765-458c84dae22e",
+      "name": "Good Enough?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [2464, 80],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "score-gt-55",
+              "leftValue": "={{ $json.fit_score }}",
+              "rightValue": 55,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a43c6f3e-cb1d-47ae-8c10-0f1f3e561fbc",
+      "name": "Save to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [2688, 144],
+      "parameters": {
+        "resource": "record",
+        "operation": "create",
+        "base": { "__rl": true, "value": "YOUR_AIRTABLE_BASE_ID", "mode": "id" },
+        "table": { "__rl": true, "value": "YOUR_AIRTABLE_TABLE_ID", "mode": "id" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "full_name": "={{ $json.full_name }}",
+            "hf_url": "={{ $json.hf_url }}",
+            "github_url": "={{ $json.github_url }}",
+            "location_city": "={{ $json.location_city }}",
+            "source": "={{ $json.source }}",
+            "source_role": "={{ $json.source_role }}",
+            "date_sourced": "={{ $json.date_sourced }}",
+            "fit_score": "={{ $json.fit_score }}",
+            "priority_action": "={{ $json.priority_action }}",
+            "key_strengths": "={{ $json.key_strengths }}",
+            "key_gaps": "={{ $json.key_gaps }}",
+            "outreach_hook": "={{ $json.outreach_hook }}",
+            "top_model_id": "={{ $json.top_model_id }}",
+            "top_model_downloads": "={{ $json.top_model_downloads }}",
+            "top_model_task": "={{ $json.top_model_task }}",
+            "num_models_published": "={{ $json.num_models_published }}",
+            "hf_followers": "={{ $json.hf_followers }}",
+            "hf_organisations": "={{ $json.hf_organisations }}",
+            "estimated_seniority": "={{ $json.estimated_seniority }}",
+            "impact_signal": "={{ $json.impact_signal }}"
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Monday 7am": {
+      "main": [[
+        { "node": "Search 1 - By Task", "type": "main", "index": 0 },
+        { "node": "Search 2 - Trending", "type": "main", "index": 0 },
+        { "node": "Search 3 - By Org", "type": "main", "index": 0 },
+        { "node": "Search 4 - By Library", "type": "main", "index": 0 }
+      ]]
+    },
+    "Search 1 - By Task": { "main": [[{ "node": "Combine All Results", "type": "main", "index": 0 }]] },
+    "Combine All Results": { "main": [[{ "node": "Extract Unique Authors", "type": "main", "index": 0 }]] },
+    "Search 2 - Trending": { "main": [[{ "node": "Combine All Results", "type": "main", "index": 1 }]] },
+    "Search 3 - By Org": { "main": [[{ "node": "Combine All Results", "type": "main", "index": 2 }]] },
+    "Search 4 - By Library": { "main": [[{ "node": "Combine All Results", "type": "main", "index": 3 }]] },
+    "Extract Unique Authors": { "main": [[{ "node": "Process One By One", "type": "main", "index": 0 }]] },
+    "Process One By One": { "main": [[], [{ "node": "Get HF Profile", "type": "main", "index": 0 }]] },
+    "Get HF Profile": {
+      "main": [
+        [{ "node": "Find on GitHub", "type": "main", "index": 0 }],
+        [{ "node": "Process One By One", "type": "main", "index": 0 }]
+      ]
+    },
+    "Find on GitHub": { "main": [[{ "node": "Format for Claude", "type": "main", "index": 0 }]] },
+    "Format for Claude": { "main": [[{ "node": "Within Test Budget?", "type": "main", "index": 0 }]] },
+    "Within Test Budget?": {
+      "main": [
+        [{ "node": "Score with Claude", "type": "main", "index": 0 }],
+        [{ "node": "Process One By One", "type": "main", "index": 0 }]
+      ]
+    },
+    "Score with Claude": { "main": [[{ "node": "Parse Score", "type": "main", "index": 0 }]] },
+    "Parse Score": { "main": [[{ "node": "Good Enough?", "type": "main", "index": 0 }]] },
+    "Good Enough?": {
+      "main": [
+        [{ "node": "Save to Airtable", "type": "main", "index": 0 }],
+        [{ "node": "Process One By One", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save to Airtable": { "main": [[{ "node": "Process One By One", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}
