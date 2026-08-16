@@ -1,6 +1,8 @@
 # Huggingface-Talent-Radar-with-Claude-n8n-Airtable
 Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 
+![Hugging Face Talent Radar Workflow](HugginFace%20n8n%20Talent%20Radar.png)
+
 # Huggingface-Talent-Radar-with-Claude-n8n-Airtable
 
 Automated Hugging Face talent sourcing with n8n + Claude + Airtable
