@@ -1,6 +1,10 @@
 # Huggingface-Talent-Radar-with-Claude-n8n-Airtable
 Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 
+# Huggingface-Talent-Radar-with-Claude-n8n-Airtable
+
+Automated Hugging Face talent sourcing with n8n + Claude + Airtable
+
 ## Who this is for (and not for)
 
 **This is for you if:**
@@ -15,11 +19,11 @@ Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 
 ## 5 accounts you need to create
 
-1. **n8n**, n8n.io, the automation engine that connects everything
-2. **Hugging Face**, huggingface.co, your source of candidates
-3. **Anthropic**, console.anthropic.com, Claude AI scoring
-4. **GitHub**, github.com, author profile cross-reference
-5. **Airtable**, airtable.com, your candidate database
+1. n8n (n8n.io), the automation engine that connects everything  
+2. Hugging Face (huggingface.co), your source of candidates  
+3. Anthropic (console.anthropic.com), Claude AI scoring  
+4. GitHub (github.com), author profile cross-reference  
+5. Airtable (airtable.com), your candidate database  
 
 ## Workflow Diagram
 
