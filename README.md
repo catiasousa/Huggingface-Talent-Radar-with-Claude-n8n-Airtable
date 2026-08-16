@@ -7,6 +7,19 @@ Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 
 Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 
+## Why Hugging Face is an underused sourcing channel for AI hiring
+
+Hugging Face is where AI engineers and researchers publish the actual models they build: not papers about them and not social posts about them, but working model artifacts that developers use in production.
+
+Download counts are a strong proxy for real world impact. If a model has hundreds of thousands of downloads, it suggests broad adoption and practical relevance beyond a CV bullet point.
+
+You can typically discover three high value profile types:
+Model authors: engineers who trained and published models
+Space creators: engineers who built interactive AI demos
+Organisation members: engineers associated with AI companies or research labs
+
+This repository gives you a weekly n8n workflow that searches Hugging Face using four methods, evaluates profiles with Claude, and stores qualified candidates in Airtable with personalized outreach (optinal) hooks informed by model impact signals. 
+
 ## Who this is for (and not for)
 
 **This is for you if:**
@@ -15,7 +28,6 @@ Automated Hugging Face talent sourcing with n8n + Claude + Airtable
 - You’re comfortable connecting APIs in n8n (Hugging Face, Claude, GitHub, Airtable).
 
 **This is NOT for you if:**
-- You need a zero-setup SaaS tool.
 - You only hire non-technical roles.
 - You cannot use external APIs due to internal compliance/policy constraints.
 
