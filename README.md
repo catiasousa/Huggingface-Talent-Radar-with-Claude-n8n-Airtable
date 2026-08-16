@@ -4,7 +4,7 @@ Automated Hugging Face talent sourcing with n8n + Claude + Airtable.
 
 ![Hugging Face Talent Radar Workflow](HugginFace%20n8n%20Talent%20Radar.png)
 
-## Why Hugging Face is an underused sourcing channel for AI hiring
+## Why Hugging Face
 
 Hugging Face is where AI engineers and researchers publish the actual models they build: not papers about them and not social posts about them, but working model artifacts that developers use in production.
 
@@ -23,7 +23,7 @@ This repository gives you a weekly n8n workflow that searches Hugging Face using
 - You only hire non-technical roles.
 - You cannot use external APIs due to internal compliance/policy constraints.
 
-## The 4 search engines this model runs
+## The 4 search engines this workflow runs
 
 The workflow runs all 4 searches every week and combines the results into one ranked talent pipeline.
 
