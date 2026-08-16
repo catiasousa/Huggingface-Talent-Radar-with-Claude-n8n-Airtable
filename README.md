@@ -47,7 +47,6 @@ This repository gives you a weekly n8n workflow that searches Hugging Face using
 - location_city
 - source
 - source_role
-- current_company
 - date_sourced
 - fit_score
 - priority_action
@@ -62,5 +61,3 @@ This repository gives you a weekly n8n workflow that searches Hugging Face using
 - hf_organisations
 - estimated_seniority
 - impact_signal
-- contacted
-- replied
