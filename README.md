@@ -39,6 +39,8 @@ Pulls the most-downloaded models published under a specific organisation — com
 ### Search 4 — By Library
 Finds the most-downloaded models built with a specific library (e.g. `transformers`) for a given task — engineers working in a specific technical stack you care about.
 
+Note: See how customize the searches for your role below. 
+
 ## How the workflow operates
 
 1. A weekly schedule trigger starts the workflow (Mondays at 07:00).
@@ -61,22 +63,22 @@ Finds the most-downloaded models built with a specific library (e.g. `transforme
 
 ## How to get each API key
 
-- **Hugging Face** — Log in → Settings → **Access Tokens** → *New token* (read scope is enough). In n8n, create a **Hugging Face** credential and paste the token.
-- **Anthropic (Claude)** — console.anthropic.com → **API Keys** → *Create Key*. In n8n, create an **Anthropic** credential with the key. Make sure your account has billing/credits enabled.
-- **GitHub** — GitHub → Settings → Developer settings → **Personal access tokens** → *Fine-grained token* (public read access is enough for user search). In n8n, create a **GitHub** credential with the token.
-- **Airtable** — airtable.com/create/tokens → *Create token* with `data.records:write` and `schema.bases:read` scopes, granted to your base. In n8n, create an **Airtable Personal Access Token** credential.
+- **Hugging Face**: Log in → Settings → **Access Tokens** → *New token* (read scope is enough). In n8n, create a **Hugging Face** credential and paste the token.
+- **Anthropic (Claude)**: console.anthropic.com → **API Keys** → *Create Key*. In n8n, create an **Anthropic** credential with the key. Make sure your account has billing/credits enabled.
+- **GitHub**: GitHub → Settings → Developer settings → **Personal access tokens** → *Fine-grained token* (public read access is enough for user search). In n8n, create a **GitHub** credential with the token.
+- **Airtable**: airtable.com/create/tokens → *Create token* with `data.records:write` and `schema.bases:read` scopes, granted to your base. In n8n, create an **Airtable Personal Access Token** credential.
 
 > Never paste API keys into the workflow JSON or into `PROMPT.md`. Keys live only in n8n's encrypted credential store.
 
-## Quickstart — two ways to build it
+## Quickstart, two ways to build it
 
-### Option A — Import the ready-made workflow
+### Option A, Import the ready-made workflow
 1. In n8n, click **Add workflow → Import from File** (or **Import from URL**).
 2. Import `workflow/huggingface-talent-radar.json` from this repo.
 3. Connect your credentials and set your Airtable destination (see Setup details below).
 4. Run a manual test, verify rows in Airtable, then activate.
 
-### Option B — Rebuild it from a single prompt
+### Option B, Rebuild it from a single prompt
 1. Open n8n and create a new workflow.
 2. Open the **n8n AI Assistant**.
 3. Paste the full prompt from [`PROMPT.md`](PROMPT.md).
@@ -92,10 +94,10 @@ In n8n, import `workflow/huggingface-talent-radar.json`.
 ### 2) Connect credentials
 This template ships with **no credentials attached**. On import, connect your own:
 
-- **Hugging Face** (`huggingFaceApi`) — used by all Hugging Face HTTP Request nodes
-- **Anthropic** (`anthropicApi`) — used by **Score with Claude**
-- **GitHub** (`githubApi`) — used by **Find on GitHub**
-- **Airtable** (`airtableTokenApi`) — used by **Save to Airtable**
+- **Hugging Face** (`huggingFaceApi`), used by all Hugging Face HTTP Request nodes
+- **Anthropic** (`anthropicApi`), used by **Score with Claude**
+- **GitHub** (`githubApi`), used by **Find on GitHub**
+- **Airtable** (`airtableTokenApi`), used by **Save to Airtable**
 
 ### 3) Point at your Airtable base
 Open the **Save to Airtable** node and set your own destination:
@@ -154,10 +156,10 @@ Optional **manual tracking** columns (not filled by the workflow — add them if
 
 ## Customizing
 
-- **Different task** — change `pipeline_tag` in the search URLs (e.g. `automatic-speech-recognition`, `image-classification`).
-- **Different library** — change `library` in Search 4 (e.g. `diffusers`, `sentence-transformers`).
-- **Model / cost** — change the `model` field in **Score with Claude**.
-- **Scoring strictness** — tune the system prompt and the `fit_score` threshold in **Good Enough?**.
+- **Different task**, change `pipeline_tag` in the search URLs (e.g. `automatic-speech-recognition`, `image-classification`).
+- **Different library**, change `library` in Search 4 (e.g. `diffusers`, `sentence-transformers`).
+- **Model / cost**, change the `model` field in **Score with Claude**.
+- **Scoring strictness**, tune the system prompt and the `fit_score` threshold in **Good Enough?**.
 
 ## Repository structure
 
@@ -178,17 +180,12 @@ LICENSE
 
 - This repo contains **no API keys or tokens**. Credentials live in n8n's encrypted credential store and are never exported to the workflow JSON.
 - The exported workflow JSON has all `credentials` blocks and internal credential IDs removed.
-- Airtable base and table IDs are placeholders (`YOUR_AIRTABLE_BASE_ID` / `YOUR_AIRTABLE_TABLE_ID`) — no private destination is exposed.
+- Airtable base and table IDs are placeholders (`YOUR_AIRTABLE_BASE_ID` / `YOUR_AIRTABLE_TABLE_ID`), no private destination is exposed.
 - No real candidate data, names, emails, or scraped profiles are committed. The workflow only defines the process; candidate data lives in your private Airtable.
 - The organisation seed in Search 3 is a placeholder (`EXAMPLE_ORG`), not a real sourcing target.
 - A **Gitleaks** GitHub Action scans every push and pull request for accidentally committed secrets.
 - Never commit a `.env` file or paste secrets into the workflow JSON. Keep keys in n8n credentials or a secrets manager only.
 
-## Operating notes
-
-- Tune the role prompt and filters weekly to improve candidate quality.
-- Add deduplication against existing Airtable records to avoid repeated authors across runs.
-- Use status fields in Airtable (e.g. `contacted`, `replied`) to track outreach progress.
 
 ## License
 
